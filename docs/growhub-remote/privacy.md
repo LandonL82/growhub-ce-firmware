@@ -10,7 +10,9 @@ advertising, analytics, tracking SDKs, or developer-operated cloud service.
 The app uses Local Network permission to discover compatible Growhub CE controllers
 and exchange status and control requests directly with them. Controller hardware
 IDs, network addresses and display names are saved on your device so the app can
-remember them. They are not uploaded to us. Native status readings are held in
+remember them. Outlet names are the equipment labels saved directly on your
+controller and cached on your phone; changes are shared with its other local
+controls. They are not uploaded to us. Native status readings are held in
 memory. Your controller's own behavior is governed by its installed firmware.
 
 ## Full controls and external services
