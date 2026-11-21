@@ -1,4 +1,5 @@
 #include "webserver.h"
+#include "form_params.h"
 #include "config.h"
 #include "wifi.h"
 #include "mqtt.h"
@@ -200,34 +201,6 @@ static const char PAGE_HEADER[] =
 "</script>"
 "</head><body>"
 "<h1>GrowHub Community Edition</h1>";
-
-// ---------------------------------------------------------------------------
-// URL-decode a query param value — returns true if key found (even if empty)
-// ---------------------------------------------------------------------------
-static bool get_param(const char *query, const char *key, char *val, size_t val_len)
-{
-    if (!query) return false;
-    char search[64];
-    snprintf(search, sizeof(search), "%s=", key);
-    const char *p = strstr(query, search);
-    if (!p) return false;
-    p += strlen(search);
-    size_t i = 0;
-    while (*p && *p != '&' && i < val_len - 1) {
-        if (*p == '+') {
-            val[i++] = ' ';
-        } else if (*p == '%' && p[1] && p[2]) {
-            char hex[3] = {p[1], p[2], 0};
-            val[i++] = (char)strtol(hex, NULL, 16);
-            p += 2;
-        } else {
-            val[i++] = *p;
-        }
-        p++;
-    }
-    val[i] = '\0';
-    return true; // key was present (even if value is empty)
-}
 
 static bool appendf(char *buf, size_t len, int *n, const char *fmt, ...)
 {

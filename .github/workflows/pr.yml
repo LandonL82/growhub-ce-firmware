@@ -58,6 +58,9 @@ jobs:
       - name: Test native settings API snapshots
         run: scripts/test-settings-api.sh
 
+      - name: Test exact HTTP form parameter matching
+        run: scripts/test-http-params.sh
+
       - name: Verify frozen release hashes when present
         run: |
           set -euo pipefail

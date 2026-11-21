@@ -7,6 +7,8 @@ native-API reboot on a physical controller.
 
 ## Behavior
 
+- HTTP form keys match exactly: `outlet_mode` is never interpreted as the bulk
+  `mode` command. A regression test covers the app/browser request forms.
 - Each outlet can keep its schedule or be taken over manually. Manual takeover
   preserves the current output; returning to Auto evaluates immediately.
 - The local web and MQTT clients retain their existing contracts. Schedule v3,
