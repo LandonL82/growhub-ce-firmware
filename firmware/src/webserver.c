@@ -544,7 +544,8 @@ static esp_err_t root_handler(httpd_req_t *req)
         s.temp_valid ? s.humidity : 0.0f, s.light,
         time_str, uptime_str,
         schedule_is_active() ? "Active" : "None",
-        mode == RELAY_MODE_MANUAL ? "MANUAL" : "AUTO");
+        relays_get_manual_mask() == 0x0F ? "MANUAL" :
+        relays_get_manual_mask() ? "MIXED" : "AUTO");
 
     if (time_warning[0]) {
         if (time_blocked) {
@@ -587,48 +588,27 @@ static esp_err_t root_handler(httpd_req_t *req)
     }
     n += snprintf(buf + n, BUF_SIZE - n, "</div>");
 
-    // --- Mode control ---
-    n += snprintf(buf + n, BUF_SIZE - n, "<div class='section'><h2>Control Mode</h2>");
-    if (mode == RELAY_MODE_AUTO) {
+    // --- Per-outlet ownership; bulk controls remain available ---
+    n += snprintf(buf + n, BUF_SIZE - n,
+        "<div class='section'><h2>Control Mode</h2>"
+        "<p>AUTO follows saved schedules. MANUAL lets you switch an outlet independently.</p>"
+        "<form method='GET' action='/save'>"
+        "<button name='mode' value='auto'>All Auto</button>"
+        "<button name='mode' value='manual'>All Manual</button></form>");
+    for (int id = 1; id <= 4; id++) {
+        bool manual = relays_get_outlet_mode(id) == RELAY_MODE_MANUAL;
         n += snprintf(buf + n, BUF_SIZE - n,
-            "<p>Currently in <strong>AUTO</strong> mode -- schedule controls outlets.</p>"
-            "<form method='GET' action='/save'>"
-            "<input type='hidden' name='mode' value='manual'>"
-            "<button type='submit' class='btn-warn'>Switch to Manual</button>"
-            "</form>");
-    } else {
-        n += snprintf(buf + n, BUF_SIZE - n,
-            "<p>Currently in <strong>MANUAL</strong> mode -- you control each outlet.</p>"
-            "<form method='GET' action='/save'>"
-            "<input type='hidden' name='mode' value='auto'>"
-            "<button type='submit'>Switch to Auto</button>"
-            "</form><br>");
-        // Per-outlet ON/OFF buttons
-        // Outlet 1 = bit3, Outlet 2 = bit0, Outlet 3 = bit1, Outlet 4 = bit2
-        struct { int outlet_num; int bit; int on; const char *name; const char *label; } outlets[4] = {
-            {1, 3, o1_on, name_o1, label_o1},
-            {2, 0, o2_on, name_o2, label_o2},
-            {3, 1, o3_on, name_o3, label_o3},
-            {4, 2, o4_on, name_o4, label_o4},
-        };
-        for (int i = 0; i < 4; i++) {
-            char disp[240];
-            outlet_display_name(outlets[i].outlet_num, outlets[i].name,
-                                outlets[i].label, disp, sizeof(disp));
-            uint8_t mask_on  = relay_mask | (1 << outlets[i].bit);
-            uint8_t mask_off = relay_mask & ~(1 << outlets[i].bit);
+            "<form method='GET' action='/save'><strong>%s: %s</strong> "
+            "<input type='hidden' name='control_outlet' value='%d'>"
+            "<button name='outlet_mode' value='%s'>Switch to %s</button>",
+            ost[id - 1].disp, manual ? "MANUAL" : "AUTO", id,
+            manual ? "auto" : "manual", manual ? "Auto" : "Manual");
+        if (manual) {
             n += snprintf(buf + n, BUF_SIZE - n,
-                "<strong>%s:</strong> "
-                "<form style='display:inline' method='GET' action='/save'>"
-                "<input type='hidden' name='relay_mask' value='%d'>"
-                "<button type='submit' class='btn-sm %s'>ON</button></form> "
-                "<form style='display:inline' method='GET' action='/save'>"
-                "<input type='hidden' name='relay_mask' value='%d'>"
-                "<button type='submit' class='btn-sm btn-danger'>OFF</button></form><br>",
-                disp,
-                mask_on, outlets[i].on ? "btn-warn" : "",
-                mask_off);
+                "<button name='outlet_state' value='on'>ON</button>"
+                "<button name='outlet_state' value='off' class='btn-danger'>OFF</button>");
         }
+        n += snprintf(buf + n, BUF_SIZE - n, "</form>");
     }
     n += snprintf(buf + n, BUF_SIZE - n, "</div>");
 
@@ -1146,16 +1126,41 @@ static esp_err_t save_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // --- Mode toggle ---
+    // --- Bulk mode toggle ---
     if (get_param(query, "mode", val, sizeof(val))) {
         if (strcmp(val, "manual") == 0) {
             relays_set_mode(RELAY_MODE_MANUAL);
+            schedule_evaluate_now();
             mqtt_publish_schedule_state("local");
         } else if (strcmp(val, "auto") == 0) {
             relays_set_mode(RELAY_MODE_AUTO);
             schedule_evaluate_now();
             mqtt_publish_schedule_state("local");
         }
+    }
+
+    // Targeted commands never write a stale full-device relay mask.
+    if (get_param(query, "control_outlet", val, sizeof(val))) {
+        int id = strlen(val) == 1 && val[0] >= '1' && val[0] <= '4' ? val[0] - '0' : 0;
+        bool ok = false;
+        if (get_param(query, "outlet_mode", val, sizeof(val))) {
+            if (!strcmp(val, "manual") || !strcmp(val, "auto")) {
+                ok = relays_set_outlet_mode(id, !strcmp(val, "manual")
+                    ? RELAY_MODE_MANUAL : RELAY_MODE_AUTO);
+            }
+        } else if (get_param(query, "outlet_state", val, sizeof(val))) {
+            if (!strcmp(val, "on") || !strcmp(val, "off")) {
+                ok = relays_set_outlet(id, !strcmp(val, "on"));
+            }
+        }
+        if (!ok) {
+            free(query);
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                                "Invalid outlet command; ON/OFF requires MANUAL for that outlet");
+            return ESP_FAIL;
+        }
+        schedule_evaluate_now();
+        mqtt_publish_schedule_state("local");
     }
 
     // --- Manual relay bitmask ---
@@ -1989,6 +1994,7 @@ static esp_err_t status_handler(httpd_req_t *req)
     }
     cJSON_AddStringToObject(root, "mode",
                             relays_get_mode() == RELAY_MODE_MANUAL ? "manual" : "auto");
+    cJSON_AddNumberToObject(root, "manual_mask", relays_get_manual_mask());
     cJSON_AddStringToObject(root, "name", cfg->device_name);
 
     cJSON *outlet_status = cJSON_CreateArray();
@@ -1999,6 +2005,8 @@ static esp_err_t status_handler(httpd_req_t *req)
             if (!item) continue;
             int bit = id == 1 ? 3 : id - 2;
             cJSON_AddNumberToObject(item, "id", id);
+            cJSON_AddStringToObject(item, "mode",
+                relays_get_outlet_mode(id) == RELAY_MODE_MANUAL ? "manual" : "auto");
             cJSON_AddStringToObject(item, "state", ((relay_mask >> bit) & 1) ? "on" : "off");
             cJSON_AddStringToObject(item, "summary", schedule_get_outlet_summary(id));
             cJSON_AddItemToArray(outlet_status, item);

@@ -5,6 +5,14 @@ controllers.
 
 Growhub CE keeps Growhub hardware usable after Niwa's cloud shutdown. Once installed, the controller runs locally over WiFi with a built-in web UI. MQTT is optional.
 
+## Proposed independent outlet control
+
+This branch adds a saved AUTO/MANUAL mode for each outlet. Use the Control Mode
+section to choose each outlet's mode and switch manual outlets ON/OFF while the
+others follow schedules. All Auto and All Manual remain available.
+See [ADR 0005](docs/adr/0005-per-outlet-control-modes.md) for compatibility and
+verification status. This proposal has not been tested on physical hardware.
+
 ## Install CE Firmware
 
 Start here if you just want to put CE firmware on your Growhub:

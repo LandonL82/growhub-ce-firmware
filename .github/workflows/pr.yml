@@ -39,6 +39,9 @@ jobs:
       - name: Build CE firmware and verify first-flash package
         run: PIO_BIN=pio scripts/build-verified-firmware.sh
 
+      - name: Test independent outlet ownership and scheduling
+        run: scripts/test-outlet-control.sh
+
       - name: Verify frozen release hashes when present
         run: |
           set -euo pipefail
