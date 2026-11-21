@@ -1,6 +1,67 @@
 import XCTest
 
 final class ReleaseJourneyTests: XCTestCase {
+    func testInvalidSensorReadingsShowUnavailable() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--invalid-sensor-demo"]
+        app.launch()
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Greenhouse")).firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["No valid temperature or humidity reading from this Growhub."].waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@ OR value CONTAINS[c] %@", "Unavailable", "Unavailable")).count, 3)
+        XCTAssertFalse(app.staticTexts["0% humidity"].exists)
+        XCTAssertFalse(app.staticTexts["0.0°C"].exists)
+    }
+    func testLightLevelAppearsOnMainControls() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo"]
+        app.launch()
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Greenhouse")).firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "180 / 255", "180 / 255")).firstMatch.waitForExistence(timeout: 3))
+    }
+    func testSingleRememberedGrowhubOpensDirectlyAndBackStillWorks() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--single-remembered-demo"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Greenhouse"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["rename-outlet-1"].exists)
+        app.navigationBars["Greenhouse"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Growhub Remote"].exists)
+        XCTAssertFalse(app.buttons["rename-outlet-1"].exists)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Greenhouse"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["rename-outlet-1"].exists)
+    }
+    func testEquipmentLabelAndOutletNameAreSharedInBothDirections() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo"]
+        app.launch()
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Greenhouse")).firstMatch.tap()
+        app.buttons["rename-outlet-1"].tap()
+        XCTAssertTrue(app.alerts["Outlet Name"].waitForExistence(timeout: 3))
+        app.alerts.textFields.firstMatch.tap()
+        app.alerts.textFields.firstMatch.typeText("Grow lights")
+        app.alerts.buttons["Save"].tap()
+        XCTAssertTrue(app.buttons["Rename Grow lights"].waitForExistence(timeout: 3))
+        app.swipeUp()
+        app.buttons["Full controls"].tap()
+        app.buttons["Outlet assignments"].tap()
+        let label = app.textFields["Equipment label"].firstMatch
+        XCTAssertTrue(label.waitForExistence(timeout: 3))
+        XCTAssertEqual(label.value as? String, "Grow lights")
+        label.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)).tap()
+        label.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Grow lights".count) + "Seedling lights")
+        app.navigationBars.buttons["Save"].tap()
+        app.buttons["Save outlet assignments"].tap()
+        XCTAssertTrue(app.buttons["Schedules"].waitForExistence(timeout: 3))
+        app.buttons["Schedules"].tap()
+        XCTAssertTrue(app.staticTexts["Seedling lights · Light"].waitForExistence(timeout: 3))
+        app.navigationBars["Schedules"].buttons.element(boundBy: 0).tap()
+        app.buttons["Done"].tap()
+        app.swipeDown()
+        XCTAssertTrue(app.buttons["Rename Seedling lights"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.switches["outlet-1-power"].label, "Seedling lights power")
+    }
     func testGrowhubAndOutletNamesKeepDeviceIdentity() {
         let app = XCUIApplication()
         app.launchArguments = ["--demo"]

@@ -107,11 +107,11 @@ struct NativeDiagnosticsView: View {
                     if let reason = status.ap_reason, !reason.isEmpty { LabeledContent("Setup reason", value: reason) }
                 }
                 Section("Sensors") {
-                    if status.temp_valid != false {
+                    if status.hasTemperatureHumidityReading {
                         LabeledContent("Temperature", value: "\(status.temp.formatted(.number.precision(.fractionLength(1))))°\(status.unit)")
                         LabeledContent("Humidity", value: "\(status.rh.formatted(.number.precision(.fractionLength(0))))%")
                     } else { Text("Temperature and humidity are unavailable.") }
-                    if let light = status.light { LabeledContent("Light level", value: "\(light) / 255") }
+                    LabeledContent("Light level", value: status.lightLevel.map { "\($0) / 255" } ?? "Unavailable")
                     LabeledContent("CO₂", value: status.co2_valid == true && status.co2 != nil ? "\(status.co2!) ppm" : "Unavailable")
                     if let warning = status.sensor_warning, !warning.isEmpty { Text(warning).foregroundStyle(.orange) }
                 }

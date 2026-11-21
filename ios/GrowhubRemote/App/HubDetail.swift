@@ -4,11 +4,13 @@ import GrowhubCore
 struct HubDetail: View {
     let id: String
     @EnvironmentObject private var store: HubStore
+    @Environment(\.scenePhase) private var phase
     @State private var fullControls = false
     @State private var confirmManual = false
     @State private var alias = ""
     @State private var rename = false
     @State private var editedOutlet: Int?
+    @State private var renameBaseline: ControllerSettings?
     var hub: RememberedHub? { store.hubs.first { $0.id == id } }
     var status: HubStatus? { store.statuses[id] }
     var body: some View {
@@ -24,9 +26,14 @@ struct HubDetail: View {
                         }.font(.caption).foregroundStyle(.secondary)
                         HStack { Label(status == nil ? "Not connected" : "Connected", systemImage: status == nil ? "wifi.slash" : "wifi"); Spacer(); Text(hub.host).font(.caption).foregroundStyle(.secondary) }
                         if let status {
-                            if status.temp != 0 || status.rh != 0 {
+                            if status.hasTemperatureHumidityReading {
                                 HStack { Text("\(status.temp, specifier: "%.1f")°\(status.unit)"); Spacer(); Text("\(status.rh, specifier: "%.0f")% humidity") }.font(.title3)
+                            } else {
+                                LabeledContent("Temperature", value: "Unavailable")
+                                LabeledContent("Humidity", value: "Unavailable")
+                                Text("No valid temperature or humidity reading from this Growhub.").font(.footnote).foregroundStyle(.secondary)
                             }
+                            LabeledContent("Light level", value: status.lightLevel.map { "\($0) / 255" } ?? "Unavailable")
                             ForEach([status.time_warning, status.sensor_warning].compactMap { $0 }.filter { !$0.isEmpty }, id: \.self) { Text($0).font(.footnote).foregroundStyle(.orange) }
                         }
                     }
@@ -51,9 +58,17 @@ struct HubDetail: View {
                                     HStack {
                                         Image(systemName: "powerplug").foregroundStyle(outlet.isOn ? Color.green : Color.secondary)
                                         Button {
-                                            editedOutlet = outlet.id
-                                            alias = hub.outletNames[outlet.id] ?? ""
-                                            rename = true
+                                            Task {
+                                                await store.refreshDetails(hub)
+                                                guard let settings = store.controllerSettings[id], settings.fields["label_\(outlet.id)"] != nil else {
+                                                    store.message = "This controller did not return a shared equipment label for this outlet."
+                                                    return
+                                                }
+                                                editedOutlet = outlet.id
+                                                renameBaseline = settings
+                                                alias = settings.value("label_\(outlet.id)")
+                                                rename = true
+                                            }
                                         } label: {
                                             HStack(spacing: 6) {
                                                 Text(hub.outletName(outlet.id)).font(.headline)
@@ -102,10 +117,11 @@ struct HubDetail: View {
                 .disabled(store.busy.contains(id))
                 .navigationTitle(hub.title)
                 .toolbar { Button { editedOutlet = nil; alias = hub.alias; rename = true } label: { Image(systemName: "pencil") }.accessibilityLabel("Rename Growhub") }
-                .refreshable { await store.refresh(hub) }
-                .sheet(isPresented: $fullControls, onDismiss: { Task { await store.refresh(hub) } }) {
+                .task(id: "\(id)-\(phase)") { if phase == .active { await store.refreshDetails(hub) } }
+                .refreshable { await store.refreshDetails(hub) }
+                .sheet(isPresented: $fullControls, onDismiss: { Task { await store.refreshDetails(hub) } }) {
                     NavigationStack {
-                        NativeControllerView(hub: hub, demo: store.demoMode)
+                        NativeControllerView(hub: hub, demo: store.demoMode, settings: store.controllerSettings[id])
                             .navigationTitle(hub.title).navigationBarTitleDisplayMode(.inline)
                             .toolbar { Button("Done") { fullControls = false } }
                     }
@@ -115,10 +131,14 @@ struct HubDetail: View {
                 } message: { Text("Outputs keep their current state. You can resume schedules at any time.") }
                 .alert(editedOutlet == nil ? "Growhub Name" : "Outlet Name", isPresented: $rename) {
                     TextField(editedOutlet == nil ? "Growhub Name" : "Outlet Name", text: $alias)
-                    Button("Save") { store.rename(id, name: alias, outlet: editedOutlet) }
+                    Button("Save") {
+                        if let outlet = editedOutlet, let baseline = renameBaseline {
+                            Task { await store.renameOutlet(hub, name: alias, outlet: outlet, baseline: baseline) }
+                        } else { store.rename(id, name: alias) }
+                    }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text(editedOutlet.map { "Choose a name for outlet \($0), such as Grow lights or Fan. Leave blank to reset." } ?? "Choose a name for this Growhub. Leave blank to use its original name.")
+                    Text(editedOutlet.map { "Choose a name for outlet \($0), such as Grow lights or Fan. This is the equipment label saved on the Growhub and shared with its other controls. Leave blank to reset." } ?? "Choose a name for this Growhub. Leave blank to use its original name.")
                 }
             } else { ContentUnavailableView("Growhub removed", systemImage: "powerplug") }
         }

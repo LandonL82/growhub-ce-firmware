@@ -16,13 +16,17 @@ native-API reboot on a physical controller.
 - `GET /api/v1/settings`, `POST /api/v1/settings`, and `GET /api/v1/status` support
   native clients. Settings reads never expose saved passwords. Writes to the new
   endpoint require the exact `X-Growhub-ID` and return JSON acknowledgements.
+- The iOS main controls show light on its raw 0–255 scale. Missing/invalid sensor
+  readings show Unavailable rather than zero humidity or a converted 32°F.
 - Status adds sensor-validity fields. The verified sensor driver still supports
   temperature, relative humidity and light; CO2 hardware remains unsupported.
 - The iOS app provides native schedules, equipment assignments, device/time,
   Wi-Fi, MQTT, firmware installation and diagnostics screens. Earlier standard CE
   firmware is read through its legacy form interface and written through `/save`.
-- Controller/outlet names are saved per controller in the app, with the original
-  GrowHub identity always visible. Earlier remembered-controller data migrates.
+- Controller names are local to the app, with the original GrowHub identity always
+  visible. Outlet names use the controller’s shared equipment labels; label edits
+  preserve assignments and schedules. A single remembered controller opens
+  directly on app startup. Earlier remembered-controller data still decodes.
 - Factory reset through the new native path is blocked if it would remove a
   disabled operation-LED override used by a known faulted controller.
 

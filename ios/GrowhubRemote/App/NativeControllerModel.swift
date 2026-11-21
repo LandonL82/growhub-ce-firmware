@@ -11,7 +11,7 @@ import GrowhubCore
     @Published var busy = false
     @Published var error: String?
     @Published var notice: String?
-    init(hub: RememberedHub, demo: Bool) { self.hub = hub; self.demo = demo }
+    init(hub: RememberedHub, demo: Bool, settings: ControllerSettings? = nil) { self.hub = hub; self.demo = demo; self.settings = settings }
     func load() async {
         await perform {
             if self.demo {

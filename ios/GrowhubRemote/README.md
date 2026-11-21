@@ -4,7 +4,11 @@ Free, independent native LAN companion for Growhub Community Edition firmware.
 No account, cloud service, subscription or MQTT broker is needed by the app.
 
 - Discovers and remembers multiple controllers by MAC identity.
-- Native outlet switches, per-controller/outlet names, stable GrowHub ID subtitle.
+- Native outlet switches, local controller names and a stable GrowHub ID subtitle.
+- Outlet names use the controller’s equipment label throughout native controls;
+  edits save only that shared label. Cached names are refreshed from the controller.
+- Opens a single remembered Growhub directly at startup, before a subnet scan;
+  Back returns to the list and multiple remembered controllers keep the list.
 - Native schedules, equipment assignments, device/time, Wi-Fi, MQTT, firmware
   installation and diagnostic/hardware-override screens; no embedded web page.
 - Detects the additive settings API. Earlier standard CE releases are supported
@@ -12,6 +16,8 @@ No account, cloud service, subscription or MQTT broker is needed by the app.
 - Uses per-outlet modes only when reported by firmware. Older global-mode units
   ask before pausing all schedules. Settings saves check for concurrent edits and
   read back saved values. Changing an equipment assignment clears its schedule.
+- Temperature/humidity validity is respected; invalid readings show Unavailable.
+  Light appears on the main controls as the raw 0–255 reading, without invented units.
 - A local demo exercises native controls without operating physical equipment.
 
 Requires iOS 17 or later, compatible CE firmware and reachable local Wi-Fi.
@@ -33,8 +39,9 @@ physical controller; physical outlet switching is checked by the hardware owner.
 
 ## Privacy and licensing
 
-Controller identities/addresses and local names stay in UserDefaults on the
-phone. Status/configuration are held in memory. Wi-Fi passwords are not returned
+Controller identities/addresses, local controller names and cached equipment
+labels stay in UserDefaults on the phone. Equipment label edits are saved directly
+on the controller and shared with its other local clients. Status/configuration are held in memory. Wi-Fi passwords are not returned
 by the API or retained as app settings. There are no analytics/tracking SDKs.
 See [privacy](../../docs/growhub-remote/privacy.md) and
 [support](../../docs/growhub-remote/support.md). Earlier binary builds embedded

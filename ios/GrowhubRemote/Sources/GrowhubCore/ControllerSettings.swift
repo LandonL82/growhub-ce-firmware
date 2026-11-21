@@ -19,6 +19,20 @@ public struct ControllerSettings: Codable, Sendable {
     public var usesNativeAPI: Bool { api == 1 }
     public func value(_ key: String) -> String { fields[key] ?? "" }
     public func enabled(_ key: String) -> Bool { value(key) == "1" }
+    public func outletName(_ id: Int) -> String {
+        let label = value("label_\(id)").trimmingCharacters(in: .whitespacesAndNewlines)
+        return label.isEmpty ? "Outlet \(id)" : label
+    }
+    public func outletLabelParameters(_ name: String, outlet: Int) throws -> [String: String] {
+        guard (1...4).contains(outlet), fields["label_\(outlet)"] != nil else {
+            throw ControllerSettingsError.invalid("This firmware does not support a shared equipment label for this outlet.")
+        }
+        let label = name.trimmingCharacters(in: .whitespaces)
+        guard label.utf8.count <= 32, !label.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) else {
+            throw ControllerSettingsError.invalid("Equipment labels can use up to 32 bytes and cannot contain control characters.")
+        }
+        return ["label_\(outlet)": label]
+    }
     public static let equipment = ["", "Light", "Fan", "Humidifier", "Dehumidifier", "Water Pump", "Heater", "AC Controller"]
 
     // Only known CE settings are interpreted. HTML is never rendered or executed.

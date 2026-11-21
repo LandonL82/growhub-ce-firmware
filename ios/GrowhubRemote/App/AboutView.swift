@@ -21,6 +21,7 @@ struct AboutView: View {
                     Text("Stock NIWA cloud firmware is not supported. This app does not perform the first stock-to-CE firmware installation.")
                 }
                 Section("Control modes") {
+                    Text("Outlet names are the equipment labels saved on the Growhub, shared with Outlet assignments and its web controls. A single remembered Growhub opens directly when you start the app; use Back to reach the list.")
                     Text("Released CE firmware may share one Auto/Manual mode across all outlets. Switching to Manual preserves outputs and pauses schedules. Resume schedules to restore Auto. Independent outlet modes appear only if supported by the installed firmware.")
                     Text("Full controls provides native schedules, assignments, device settings, Wi-Fi, Command Center, firmware updates and diagnostics. Recheck equipment after any changes; the app is not a safety monitoring service.")
                 }

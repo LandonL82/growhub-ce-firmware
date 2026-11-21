@@ -184,6 +184,31 @@ final class HubTests: XCTestCase {
         hubs[0].setOutletName(" \n ", outlet: 1)
         XCTAssertEqual(hubs[0].outletName(1), "Outlet 1")
     }
+    func testControllerLabelsReplaceCachedAppNamesAndClearAcrossRefresh() throws {
+        var hub = RememberedHub(status: try decode(), host: "192.168.1.5")
+        hub.setOutletName("Old app-only name", outlet: 1)
+        let shared = settings(fields: ["label_1":"Grow lights", "label_2":"Exhaust fan"])
+        hub.applyOutletLabels(shared)
+        XCTAssertEqual(hub.outletName(1), shared.outletName(1))
+        XCTAssertEqual(hub.outletName(2), "Exhaust fan")
+        hub.applyOutletLabels(settings(fields: ["label_1":"Other controller"], mac: "112233445566"))
+        XCTAssertEqual(hub.outletName(1), "Grow lights")
+        hub.applyOutletLabels(settings(fields: ["label_1":""]))
+        XCTAssertEqual(hub.outletName(1), "Outlet 1")
+        XCTAssertEqual(hub.outletName(2), "Exhaust fan")
+        let restored = try JSONDecoder().decode(RememberedHub.self, from: JSONEncoder().encode(hub))
+        XCTAssertEqual(restored.outletName(2), "Exhaust fan")
+    }
+    func testOutletRenameOnlyWritesTheSharedLabelWithFirmwareLimits() throws {
+        let shared = settings(fields: ["label_1":"Before", "label_2":"Fan", "outlet_1":"Light", "s1_time_en":"1"])
+        XCTAssertEqual(try shared.outletLabelParameters(" Grow lights ", outlet: 1), ["label_1":"Grow lights"])
+        XCTAssertEqual(try shared.outletLabelParameters("  ", outlet: 2), ["label_2":""])
+        XCTAssertThrowsError(try shared.outletLabelParameters("Name", outlet: 3))
+        XCTAssertThrowsError(try shared.outletLabelParameters("Name", outlet: 0))
+        XCTAssertThrowsError(try shared.outletLabelParameters(String(repeating: "é", count: 17), outlet: 1))
+        XCTAssertThrowsError(try shared.outletLabelParameters("Bad\nname", outlet: 1))
+        XCTAssertEqual(shared.value("s1_time_en"), "1")
+    }
     func testDemoCommandsAreLocalAndKeepOtherOutlets() {
         let before = DemoController.status(index: 0)
         let changed = DemoController.changing(before, outlet: 1, on: true)
@@ -200,6 +225,18 @@ final class HubTests: XCTestCase {
         XCTAssertTrue(new.hasOutletModes)
         XCTAssertFalse(try decode(legacy.replacingOccurrences(of: "AABBCCDDEEFF", with: "not-a-mac")).isValidHub)
         XCTAssertFalse(try decode(legacy.replacingOccurrences(of: "\"id\":4", with: "\"id\":3")).isValidHub)
+    }
+    func testInvalidSensorReadingsAreNotDisplayedAsZeroHumidity() throws {
+        XCTAssertTrue(try decode().hasTemperatureHumidityReading)
+        let empty = legacy.replacingOccurrences(of: "\"temp\":22,\"rh\":55", with: "\"temp\":0,\"rh\":0")
+        XCTAssertFalse(try decode(empty).hasTemperatureHumidityReading)
+        let fahrenheit = empty.replacingOccurrences(of: "\"temp\":0", with: "\"temp\":32").replacingOccurrences(of: "\"unit\":\"C\"", with: "\"unit\":\"F\"")
+        XCTAssertFalse(try decode(fahrenheit).hasTemperatureHumidityReading)
+        XCTAssertFalse(try decode(legacy.replacingOccurrences(of: "\"temp\":22", with: "\"temp_valid\":false,\"temp\":22")).hasTemperatureHumidityReading)
+        XCTAssertTrue(try decode(empty.replacingOccurrences(of: "\"temp\":0", with: "\"temp_valid\":true,\"temp\":0")).hasTemperatureHumidityReading)
+        XCTAssertEqual(DemoController.status(index: 0).lightLevel, 180)
+        XCTAssertNil(DemoController.status(index: 0, sensorAvailable: false).lightLevel)
+        XCTAssertEqual(try decode(legacy.replacingOccurrences(of: "\"temp\":22", with: "\"light\":0,\"temp\":22")).lightLevel, 0)
     }
     func testAddressValidation() throws {
         XCTAssertEqual(try HubAPI.baseURL("192.168.1.5").host, "192.168.1.5")

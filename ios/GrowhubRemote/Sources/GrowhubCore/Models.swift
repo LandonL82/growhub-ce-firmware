@@ -31,6 +31,18 @@ public struct HubStatus: Decodable, Sendable {
     public let sntp_status: String?
     public let ap_active: Bool?
     public let ap_reason: String?
+    public var hasTemperatureHumidityReading: Bool {
+        guard temp.isFinite, rh.isFinite, (0...100).contains(rh) else { return false }
+        if let valid = temp_valid { return valid }
+        // Earlier CE releases omit validity and send zero-filled readings when
+        // no sensor has replied. Fahrenheit conversion turns that zero into 32.
+        guard sensor_warning?.isEmpty != false else { return false }
+        return rh != 0 || temp != (unit == "F" ? 32 : 0)
+    }
+    public var lightLevel: Int? {
+        guard hasTemperatureHumidityReading, let light, (0...255).contains(light) else { return nil }
+        return light
+    }
     public var id: String { mac.uppercased().replacingOccurrences(of: ":", with: "") }
     public var hasOutletModes: Bool { outlet_status.allSatisfy { $0.mode == "auto" || $0.mode == "manual" } }
     public var isValidHub: Bool {
@@ -52,6 +64,12 @@ public struct RememberedHub: Codable, Identifiable, Sendable {
         guard (1...4).contains(outlet) else { return }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         outletNames[outlet] = trimmed.isEmpty ? nil : trimmed
+    }
+    public mutating func applyOutletLabels(_ settings: ControllerSettings) {
+        guard settings.mac == id else { return }
+        for outlet in 1...4 {
+            if let label = settings.fields["label_\(outlet)"] { setOutletName(label, outlet: outlet) }
+        }
     }
     public init(status: HubStatus, host: String) {
         id = status.id; self.host = host; name = status.name

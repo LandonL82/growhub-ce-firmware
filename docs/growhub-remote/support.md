@@ -15,8 +15,16 @@ Manual preserves the current outputs and pauses schedules. Use Resume schedules
 to return to Auto. Independent outlet modes require compatible installed firmware.
 Full controls provides native schedules, assignments, device/time, Wi-Fi, MQTT,
 firmware updates and diagnostics. Earlier standard CE firmware is supported through
-its existing local interface. Controller/outlet names can be edited in the app;
-the original GrowHub ID stays visible under a custom controller name.
+its existing local interface. Outlet names use the controller’s saved equipment
+labels, shared by the app, Outlet assignments and the web interface. Editing a name
+saves only its label and leaves equipment types and schedules unchanged. Pull to
+refresh to read changes made elsewhere. The original GrowHub ID stays visible
+under a custom controller name. A single remembered Growhub opens directly on
+startup; Back returns to the list. Multiple remembered Growhubs open on the list.
+
+Temperature/humidity require a connected sensor. Invalid readings show Unavailable.
+Light is a relative 0–255 sensor reading, not lux or a calibrated percentage.
+The controller and app currently display live readings without stored sensor history.
 
 Use Help and demo → Explore demo to try the native controls without hardware.
 Demo controllers never send network requests or operate physical equipment.

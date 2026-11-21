@@ -3,7 +3,8 @@ import GrowhubCore
 
 struct NativeControllerView: View {
     @StateObject private var model: NativeControllerModel
-    init(hub: RememberedHub, demo: Bool) { _model = StateObject(wrappedValue: NativeControllerModel(hub: hub, demo: demo)) }
+    @EnvironmentObject private var store: HubStore
+    init(hub: RememberedHub, demo: Bool, settings: ControllerSettings? = nil) { _model = StateObject(wrappedValue: NativeControllerModel(hub: hub, demo: demo, settings: settings)) }
     var body: some View {
         Group {
             if let settings = model.settings {
@@ -29,6 +30,9 @@ struct NativeControllerView: View {
             else { ContentUnavailableView { Label("Couldn’t load settings", systemImage: "wifi.exclamationmark") } description: { Text(model.error ?? "Check your Wi-Fi and try again.") } actions: { Button("Try again") { Task { await model.load() } } } }
         }
         .task { await model.load() }
+        .onChange(of: model.settings?.fields, initial: true) { _, _ in
+            if let settings = model.settings { store.receiveSettings(settings) }
+        }
         .refreshable { await model.load() }
         .safeAreaInset(edge: .bottom) { NativeMessage().environmentObject(model) }
     }
@@ -105,7 +109,7 @@ struct NativeSettingsEditor: View {
         else {
             ForEach(1...4, id: \.self) { id in
                 let type = fields["outlet_\(id)"] ?? ""
-                if !type.isEmpty { Section("\(model.hub.outletName(id)) · \(type)") { scheduleFields(id, type: type) } }
+                if !type.isEmpty { Section("\(baseline.outletName(id)) · \(type)") { scheduleFields(id, type: type) } }
             }
             if !(1...4).contains(where: { !(fields["outlet_\($0)"] ?? "").isEmpty }) { Section { Text("Choose equipment types in Outlet assignments to create schedules.") } }
             Section { Button("Clear all schedules", role: .destructive) { action = "sched_clear"; confirm = true } }
@@ -145,9 +149,10 @@ struct NativeSettingsEditor: View {
     }
     private var outlets: some View {
         ForEach(1...4, id: \.self) { id in
-            Section(model.hub.outletName(id)) {
+            Section(baseline.outletName(id)) {
                 picker("Equipment", "outlet_\(id)", choices: baseline.choices["outlet_type"] ?? ControllerSettings.equipment.map { SettingChoice(value: $0, label: $0.isEmpty ? "None" : $0) })
-                if fields["label_\(id)"] != nil { text("Equipment label", "label_\(id)") }
+                if fields["label_\(id)"] != nil { text("Equipment label", "label_\(id)")
+                    Text("Also used as this outlet’s name throughout the app.").font(.footnote).foregroundStyle(.secondary) }
                 Text("Physical outlet \(id)").font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -206,6 +211,15 @@ struct NativeSettingsEditor: View {
         if kind == .schedule {
             var edited = baseline; edited.fields = fields
             params = edited.scheduleParameters()
+        }
+        if kind == .outlets {
+            do {
+                for id in 1...4 {
+                    if let label = params["label_\(id)"] {
+                        params.merge(try baseline.outletLabelParameters(label, outlet: id)) { _, new in new }
+                    }
+                }
+            } catch { model.error = error.localizedDescription; return }
         }
         if kind == .wifi, params["ssid"] == baseline.value("ssid"), (params["password"] ?? "").isEmpty {
             params["ssid"] = nil; params["password"] = nil

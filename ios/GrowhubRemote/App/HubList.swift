@@ -4,24 +4,24 @@ import GrowhubCore
 struct HubList: View {
     @EnvironmentObject private var store: HubStore
     @Environment(\.scenePhase) private var phase
-    @State private var selection: String?
+    @State private var path: [String] = []
     @State private var showAdd = false
     @State private var address = ""
     @State private var adding = false
     @State private var autoOpened = false
     @State private var showAbout = false
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if store.demoMode {
                     Section {
                         Label("Demo · no hardware connected", systemImage: "play.circle")
-                        Button("Exit demo") { selection = nil; store.setDemo(false); Task { await store.scan() } }
+                        Button("Exit demo") { path = []; store.setDemo(false); Task { await store.scan() } }
                     }
                 }
                 Section {
                     ForEach(store.hubs) { hub in
-                        Button { selection = hub.id } label: {
+                        Button { autoOpened = true; path = [hub.id] } label: {
                             HStack(spacing: 14) {
                                 Image(systemName: "powerplug.fill").font(.title2).foregroundStyle(.green)
                                 VStack(alignment: .leading, spacing: 4) {
@@ -56,14 +56,10 @@ struct HubList: View {
                 }
             }
             .sheet(isPresented: $showAbout) { AboutView().environmentObject(store) }
-            .onChange(of: store.demoMode) { _, _ in selection = nil; autoOpened = true }
-            .onChange(of: store.statuses.count) { _, _ in
-                if !autoOpened, store.hubs.count == 1, let only = store.hubs.first,
-                   store.statuses[only.id] != nil {
-                    selection = only.id; autoOpened = true
-                }
-            }
-            .navigationDestination(item: $selection) { id in HubDetail(id: id) }
+            .onChange(of: store.demoMode) { _, _ in path = []; autoOpened = true }
+            .onAppear { openSingleGrowhub() }
+            .onChange(of: store.scanning) { _, scanning in if !scanning { openSingleGrowhub() } }
+            .navigationDestination(for: String.self) { id in HubDetail(id: id) }
             .sheet(isPresented: $showAdd) {
                 NavigationStack {
                     Form {
@@ -84,8 +80,7 @@ struct HubList: View {
             .task(id: "\(phase)-\(store.demoMode)") {
                 guard phase == .active, !store.demoMode else { return }
                 await store.scan()
-                if !autoOpened, store.hubs.count == 1, let only = store.hubs.first, store.statuses[only.id] != nil { selection = only.id }
-                autoOpened = true
+                openSingleGrowhub()
                 var cycles = 0
                 while !Task.isCancelled {
                     do { try await Task.sleep(for: .seconds(10)) } catch { break }
@@ -96,5 +91,10 @@ struct HubList: View {
             }
             .refreshable { await store.scan() }
         }
+    }
+    private func openSingleGrowhub() {
+        guard !autoOpened, path.isEmpty, store.hubs.count == 1, let hub = store.hubs.first else { return }
+        autoOpened = true
+        path = [hub.id]
     }
 }

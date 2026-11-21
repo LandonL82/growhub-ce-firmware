@@ -5,6 +5,7 @@ import GrowhubCore
 @MainActor final class HubStore: ObservableObject {
     @Published var hubs: [RememberedHub] = []
     @Published var statuses: [String: HubStatus] = [:]
+    @Published var controllerSettings: [String: ControllerSettings] = [:]
     @Published var scanning = false
     @Published var message: String?
     @Published var demoMode = false
@@ -13,7 +14,14 @@ import GrowhubCore
     private var modeGeneration = 0
     private var bonjour: BonjourDiscovery?
     init() {
-        if ProcessInfo.processInfo.arguments.contains("--demo") { setDemo(true); return }
+        if ProcessInfo.processInfo.arguments.contains("--demo") {
+            setDemo(true)
+            if ProcessInfo.processInfo.arguments.contains("--single-remembered-demo") { hubs = Array(hubs.prefix(1)) }
+            if ProcessInfo.processInfo.arguments.contains("--invalid-sensor-demo") {
+                for hub in hubs { statuses[hub.id] = DemoController.status(index: hub.id.hasSuffix("1") ? 0 : 1, sensorAvailable: false) }
+            }
+            return
+        }
         loadRemembered()
     }
     private func loadRemembered() {
@@ -49,12 +57,47 @@ import GrowhubCore
         let normalized = try HubAPI.baseURL(host).absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         remember(try await HubAPI.shared.status(host: normalized), host: normalized)
     }
-    func forget(_ id: String) { hubs.removeAll { $0.id == id }; statuses[id] = nil; persist() }
-    func rename(_ id: String, name: String, outlet: Int? = nil) {
+    func forget(_ id: String) { hubs.removeAll { $0.id == id }; statuses[id] = nil; controllerSettings[id] = nil; persist() }
+    func rename(_ id: String, name: String) {
         guard let index = hubs.firstIndex(where: { $0.id == id }) else { return }
-        if let outlet { hubs[index].setOutletName(name, outlet: outlet) }
-        else { hubs[index].alias = name.trimmingCharacters(in: .whitespacesAndNewlines) }
+        hubs[index].alias = name.trimmingCharacters(in: .whitespacesAndNewlines)
         persist()
+    }
+    func receiveSettings(_ settings: ControllerSettings) {
+        guard let index = hubs.firstIndex(where: { $0.id == settings.mac }) else { return }
+        controllerSettings[settings.mac] = settings
+        hubs[index].applyOutletLabels(settings)
+        persist()
+    }
+    func refreshDetails(_ hub: RememberedHub) async {
+        if demoMode {
+            if controllerSettings[hub.id] == nil { receiveSettings(NativeControllerModel.demoSettings(hub)) }
+            return
+        }
+        await refresh(hub)
+        let generation = modeGeneration
+        do {
+            let settings = try await HubAPI.shared.settings(hub)
+            guard generation == modeGeneration else { return }
+            receiveSettings(settings)
+        } catch { if generation == modeGeneration { message = error.localizedDescription } }
+    }
+    func renameOutlet(_ hub: RememberedHub, name: String, outlet: Int, baseline: ControllerSettings) async {
+        guard !busy.contains(hub.id) else { return }
+        busy.insert(hub.id); message = nil
+        let generation = modeGeneration
+        defer { busy.remove(hub.id) }
+        do {
+            let params = try baseline.outletLabelParameters(name, outlet: outlet)
+            if demoMode {
+                var settings = controllerSettings[hub.id] ?? baseline
+                settings.fields.merge(params) { _, new in new }
+                receiveSettings(settings)
+            } else if let settings = try await HubAPI.shared.writeSettings(hub, params: params, baseline: baseline) {
+                guard generation == modeGeneration else { return }
+                receiveSettings(settings)
+            }
+        } catch { if generation == modeGeneration { message = error.localizedDescription } }
     }
     func scan() async {
         guard !demoMode, !scanning else { return }
@@ -94,7 +137,7 @@ import GrowhubCore
     }
     func setDemo(_ enabled: Bool) {
         modeGeneration += 1
-        demoMode = enabled; message = nil; statuses = [:]; hubs = []
+        demoMode = enabled; message = nil; statuses = [:]; controllerSettings = [:]; hubs = []
         if enabled {
             bonjour?.stop(); bonjour = nil
             for i in 0...1 {
