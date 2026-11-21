@@ -15,10 +15,15 @@ memory. Your controller's own behavior is governed by its installed firmware.
 
 ## Full controls and external services
 
-Full controls displays your controller's local web page. Data entered there goes
-to that controller; its website data may be stored on your device. Actions you
-initiate on that page, such as a firmware update, may contact the firmware sources
-you choose. External websites and email services operate under their own policies.
+Full controls uses native screens to read settings and send commands directly to
+your controller. With older CE firmware, its settings page is parsed as data;
+the app does not display it or execute its scripts. Configuration is held in
+memory; Wi-Fi passwords you enter are sent only to the selected controller and
+are not retained as app settings. Firmware updates may contact the sources you
+choose. External websites and email services follow their own policies.
+
+Earlier app builds used an embedded controller page that could retain local
+website data. Deleting the app removes any website data left by those builds.
 
 ## Your choices
 

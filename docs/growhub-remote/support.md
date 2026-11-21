@@ -13,7 +13,10 @@ other controllers by address. IPv6-only discovery is not currently supported.
 Released CE firmware may have a shared Auto/Manual mode for all four outlets.
 Manual preserves the current outputs and pauses schedules. Use Resume schedules
 to return to Auto. Independent outlet modes require compatible installed firmware.
-Full controls opens the controller's local page for schedules and settings.
+Full controls provides native schedules, assignments, device/time, Wi-Fi, MQTT,
+firmware updates and diagnostics. Earlier standard CE firmware is supported through
+its existing local interface. Controller/outlet names can be edited in the app;
+the original GrowHub ID stays visible under a custom controller name.
 
 Use Help and demo → Explore demo to try the native controls without hardware.
 Demo controllers never send network requests or operate physical equipment.
