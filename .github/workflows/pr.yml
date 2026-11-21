@@ -7,6 +7,19 @@ on:
     branches: [main]
 
 jobs:
+  ios:
+    name: iOS companion build and core tests
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Test native and legacy controller protocols
+        working-directory: ios/GrowhubRemote
+        run: swift test
+      - name: Build iPhone and iPad app
+        working-directory: ios/GrowhubRemote
+        run: xcodebuild build -project GrowhubRemote.xcodeproj -scheme GrowhubRemote -destination 'generic/platform=iOS Simulator' -configuration Debug CODE_SIGNING_ALLOWED=NO
+
   build:
     name: PlatformIO build
     runs-on: ubuntu-latest
@@ -41,6 +54,9 @@ jobs:
 
       - name: Test independent outlet ownership and scheduling
         run: scripts/test-outlet-control.sh
+
+      - name: Test native settings API snapshots
+        run: scripts/test-settings-api.sh
 
       - name: Verify frozen release hashes when present
         run: |

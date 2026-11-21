@@ -17,7 +17,7 @@ than strict Semantic Versioning syntax; compatibility meaning follows
 
 The amount of code changed does not determine the version. Published tag
 contents are immutable. The independent outlet-control proposal uses development
-version `1.3.0C` so it cannot be confused with the frozen `1.2.0C` artifacts.
+version `1.2.5C` so it cannot be confused with the frozen `1.2.0C` artifacts.
 This is not a published or hardware-verified release. See
 [ADR 0005](adr/0005-per-outlet-control-modes.md) for scope and remaining verification.
 Both `GROWHUB_VERSION` in `firmware/platformio.ini` and `CONFIG_APP_PROJECT_VER`

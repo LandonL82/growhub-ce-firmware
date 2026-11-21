@@ -56,8 +56,12 @@ Current CE firmware supports:
 The current release firmware and initial Command Center compatibility baseline
 is `1.1.0C`.
 
-Development builds are versioned `1.2.0C` and add automatic MQTT reporting of the
-device's management address. See the [v1.2.0C development notes](docs/RELEASE-NOTES-v1.2.0C.md).
+The proposed development candidate is `1.2.5C`: independent outlet modes, an
+additive [local settings API](docs/HTTP-API.md), and the native
+[Growhub Remote iOS companion](ios/GrowhubRemote/README.md). It preserves the
+existing web/MQTT interfaces and earlier CE app compatibility. It is not a
+published firmware release; physical relay/reboot/OTA acceptance remains pending.
+See [candidate notes](docs/RELEASE-NOTES-v1.2.5C.md).
 
 Known limitations:
 
