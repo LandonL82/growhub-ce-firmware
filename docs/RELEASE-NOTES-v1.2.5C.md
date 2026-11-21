@@ -30,7 +30,7 @@ native-API reboot on a physical controller.
 - Factory reset through the new native path is blocked if it would remove a
   disabled operation-LED override used by a known faulted controller.
 
-## Verification and remaining gates
+## Completed validation
 
 The firmware compiles and passes verified artifact packaging, host-side native
 API snapshot tests, and real relay/schedule C tests under ASan/UBSan. The iOS app's
@@ -42,9 +42,11 @@ manual ownership; a separate native-API reboot preserved all 91 exported setting
 Manual outputs started OFF as designed. iPhone and
 iPad simulator journeys exercise the native screens and demo settings saves.
 
-Independent relay switching and mixed schedules are being checked by the hardware
-owner. Wi-Fi/MQTT configuration changes and forced boot-failure rollback were not
-exercised on the live controller. Preserve existing hardware overrides and do not
-factory-reset faulted hardware for testing.
+The hardware owner confirmed hands-on validation complete on November 21, 2026.
+The corrected HTTP parser was tested on the real controller: selecting AUTO or
+MANUAL changed only the targeted outlet and preserved the other three modes.
+After reconnecting the sensor, valid temperature, humidity and light readings
+were observed. See the [validation record](VALIDATION-v1.2.5C.md) for the tested
+image checksum, direct observations and owner-confirmed hardware acceptance.
 
 No stock NIWA cloud-to-CE OTA migration or CO2 driver is included.

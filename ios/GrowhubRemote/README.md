@@ -5,6 +5,9 @@ No account, cloud service, subscription or MQTT broker is needed by the app.
 
 - Discovers and remembers multiple controllers by MAC identity.
 - Native outlet switches, local controller names and a stable GrowHub ID subtitle.
+- Compact three-reading card, subtle name-adjacent rename pencil and Wi-Fi status
+  beside an info popover for the address, firmware and signal. Request errors are
+  tracked per controller.
 - Outlet names use the controller’s equipment label throughout native controls;
   edits save only that shared label. Cached names are refreshed from the controller.
 - Opens a single remembered Growhub directly at startup, before a subnet scan;

@@ -11,7 +11,10 @@ This branch adds a saved AUTO/MANUAL mode for each outlet. Use the Control Mode
 section to choose each outlet's mode and switch manual outlets ON/OFF while the
 others follow schedules. All Auto and All Manual remain available.
 See [ADR 0005](docs/adr/0005-per-outlet-control-modes.md) for compatibility and
-verification status. This proposal has not been tested on physical hardware.
+verification status. CE-to-CE OTA, native reboot, settings preservation and
+independent outlet modes have been checked on physical hardware; the controller
+owner has confirmed hardware validation complete. See the
+[validation record](docs/VALIDATION-v1.2.5C.md) for the evidence.
 
 ## Install CE Firmware
 

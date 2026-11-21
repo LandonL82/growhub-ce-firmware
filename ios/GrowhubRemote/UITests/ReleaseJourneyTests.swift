@@ -1,6 +1,38 @@
 import XCTest
 
 final class ReleaseJourneyTests: XCTestCase {
+    func testCompactHeaderKeepsDetailsBehindInfoAndNamesEditable() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--single-remembered-demo"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["growhub-name"].waitForExistence(timeout: 8))
+        XCTAssertEqual(app.staticTexts["growhub-name"].label, "Greenhouse")
+        XCTAssertTrue(app.staticTexts["GrowHub_0001"].exists)
+        XCTAssertTrue(app.buttons["Rename Growhub"].exists)
+        XCTAssertFalse(app.staticTexts["Demo controller"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "CE 1.2.0C", "CE 1.2.0C")).firstMatch.exists)
+        capture("07-compact-header")
+        app.buttons["Device details"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["device-ip-address"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "CE 1.2.0C", "CE 1.2.0C")).firstMatch.exists)
+        capture("08-device-details")
+        app.buttons["Close device details"].tap()
+        XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", "CE 1.2.0C", "CE 1.2.0C")).firstMatch.exists)
+        app.buttons["Rename Growhub"].tap()
+        XCTAssertTrue(app.alerts["Growhub Name"].exists)
+        app.alerts.buttons["Cancel"].tap()
+    }
+    func testConnectionIndicatorShowsConnectedOfflineAndRequestError() {
+        for (flag, label) in [("", "Connected"), ("--offline-demo", "Not connected"), ("--request-error-demo", "Request error")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo", "--single-remembered-demo"] + (flag.isEmpty ? [] : [flag])
+            app.launch()
+            let indicator = app.images["growhub-connection"]
+            XCTAssertTrue(indicator.waitForExistence(timeout: 8))
+            XCTAssertEqual(indicator.label, label)
+            app.terminate()
+        }
+    }
     func testInvalidSensorReadingsShowUnavailable() {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--invalid-sensor-demo"]
@@ -22,14 +54,14 @@ final class ReleaseJourneyTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--demo", "--single-remembered-demo"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Greenhouse"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["growhub-name"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["rename-outlet-1"].exists)
-        app.navigationBars["Greenhouse"].buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Growhub Remote"].exists)
         XCTAssertFalse(app.buttons["rename-outlet-1"].exists)
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.navigationBars["Greenhouse"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["growhub-name"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["rename-outlet-1"].exists)
     }
     func testEquipmentLabelAndOutletNameAreSharedInBothDirections() {
@@ -73,7 +105,7 @@ final class ReleaseJourneyTests: XCTestCase {
         app.alerts.textFields.firstMatch.tap()
         app.alerts.textFields.firstMatch.typeText("Kitchen garden")
         app.alerts.buttons["Save"].tap()
-        XCTAssertTrue(app.navigationBars["Kitchen garden"].exists)
+        XCTAssertEqual(app.staticTexts["growhub-name"].label, "Kitchen garden")
         XCTAssertTrue(app.staticTexts["GrowHub_0001"].exists)
         app.buttons["rename-outlet-1"].tap()
         app.alerts.textFields.firstMatch.tap()
@@ -117,8 +149,13 @@ final class ReleaseJourneyTests: XCTestCase {
         app.buttons["Done"].tap()
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Help and demo"].tap()
-        app.swipeUp()
-        app.buttons["Privacy policy"].tap()
+        let privacy = app.buttons["Privacy policy"]
+        for _ in 0..<5 {
+            if privacy.exists && privacy.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(privacy.waitForExistence(timeout: 3))
+        privacy.tap()
         XCTAssertTrue(app.staticTexts["Growhub Remote Privacy Policy"].waitForExistence(timeout: 3))
     }
     func testNativeControllerPagesAndScheduleSave() {

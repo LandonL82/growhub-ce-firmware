@@ -1,6 +1,6 @@
 # ADR 0005: Independent outlet control modes
 
-**Status:** Proposed (not hardware verified)
+**Status:** Proposed for upstream review; hardware validation completed November 21, 2026.
 
 **Supersedes:** ADR 0004's device-wide-only ownership rules. Schedule v3 is unchanged.
 
@@ -49,5 +49,7 @@ It covers independent control, schedule save/clear, mapping for all four outlets
 mode restoration with outputs OFF, pump takeover/eligibility, warnings, legacy
 commands, invalid IDs, all-off, and concurrent schedule/manual output writes.
 
-Physical relay behavior, NVS migration on a real controller, web UI interactions,
-MQTT integration, and CE-to-CE OTA still need bench verification before release.
+CE-to-CE OTA, startup/mode migration, native reboot and isolated outlet-mode
+commands were checked on a real controller. The hardware owner confirmed
+hands-on validation complete. See the [validation record](../VALIDATION-v1.2.5C.md)
+for exact observations, the tested image checksum and automated coverage.

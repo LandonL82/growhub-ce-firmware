@@ -22,6 +22,11 @@ refresh to read changes made elsewhere. The original GrowHub ID stays visible
 under a custom controller name. A single remembered Growhub opens directly on
 startup; Back returns to the list. Multiple remembered Growhubs open on the list.
 
+The compact header keeps your Growhub name and original ID visible. The small
+pencil beside the name renames the Growhub. Wi-Fi is green when connected, red
+when disconnected and orange after a request error. Tap the adjacent info button
+for the IP address, firmware version and signal details.
+
 Temperature/humidity require a connected sensor. Invalid readings show Unavailable.
 Light is a relative 0–255 sensor reading, not lux or a calibrated percentage.
 The controller and app currently display live readings without stored sensor history.

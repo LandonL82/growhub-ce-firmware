@@ -6,6 +6,7 @@ import GrowhubCore
     @Published var hubs: [RememberedHub] = []
     @Published var statuses: [String: HubStatus] = [:]
     @Published var controllerSettings: [String: ControllerSettings] = [:]
+    @Published var controllerErrors: [String: String] = [:]
     @Published var scanning = false
     @Published var message: String?
     @Published var demoMode = false
@@ -19,6 +20,10 @@ import GrowhubCore
             if ProcessInfo.processInfo.arguments.contains("--single-remembered-demo") { hubs = Array(hubs.prefix(1)) }
             if ProcessInfo.processInfo.arguments.contains("--invalid-sensor-demo") {
                 for hub in hubs { statuses[hub.id] = DemoController.status(index: hub.id.hasSuffix("1") ? 0 : 1, sensorAvailable: false) }
+            }
+            if ProcessInfo.processInfo.arguments.contains("--offline-demo") { statuses = [:] }
+            if ProcessInfo.processInfo.arguments.contains("--request-error-demo") {
+                for hub in hubs { controllerErrors[hub.id] = "Demo request failed. Refresh to try again." }
             }
             return
         }
@@ -39,6 +44,7 @@ import GrowhubCore
             hubs[index].host = host; hubs[index].name = status.name
         } else { hubs.append(RememberedHub(status: status, host: host)) }
         statuses[status.id] = status
+        controllerErrors[status.id] = nil
         persist()
     }
     func refresh(_ hub: RememberedHub) async {
@@ -57,7 +63,7 @@ import GrowhubCore
         let normalized = try HubAPI.baseURL(host).absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         remember(try await HubAPI.shared.status(host: normalized), host: normalized)
     }
-    func forget(_ id: String) { hubs.removeAll { $0.id == id }; statuses[id] = nil; controllerSettings[id] = nil; persist() }
+    func forget(_ id: String) { hubs.removeAll { $0.id == id }; statuses[id] = nil; controllerSettings[id] = nil; controllerErrors[id] = nil; persist() }
     func rename(_ id: String, name: String) {
         guard let index = hubs.firstIndex(where: { $0.id == id }) else { return }
         hubs[index].alias = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -80,11 +86,11 @@ import GrowhubCore
             let settings = try await HubAPI.shared.settings(hub)
             guard generation == modeGeneration else { return }
             receiveSettings(settings)
-        } catch { if generation == modeGeneration { message = error.localizedDescription } }
+        } catch { if generation == modeGeneration { message = error.localizedDescription; controllerErrors[hub.id] = message } }
     }
     func renameOutlet(_ hub: RememberedHub, name: String, outlet: Int, baseline: ControllerSettings) async {
         guard !busy.contains(hub.id) else { return }
-        busy.insert(hub.id); message = nil
+        busy.insert(hub.id); message = nil; controllerErrors[hub.id] = nil
         let generation = modeGeneration
         defer { busy.remove(hub.id) }
         do {
@@ -97,7 +103,7 @@ import GrowhubCore
                 guard generation == modeGeneration else { return }
                 receiveSettings(settings)
             }
-        } catch { if generation == modeGeneration { message = error.localizedDescription } }
+        } catch { if generation == modeGeneration { message = error.localizedDescription; controllerErrors[hub.id] = message } }
     }
     func scan() async {
         guard !demoMode, !scanning else { return }
@@ -137,7 +143,7 @@ import GrowhubCore
     }
     func setDemo(_ enabled: Bool) {
         modeGeneration += 1
-        demoMode = enabled; message = nil; statuses = [:]; controllerSettings = [:]; hubs = []
+        demoMode = enabled; message = nil; statuses = [:]; controllerSettings = [:]; controllerErrors = [:]; hubs = []
         if enabled {
             bonjour?.stop(); bonjour = nil
             for i in 0...1 {
@@ -160,6 +166,7 @@ import GrowhubCore
     func run(_ hub: RememberedHub, action: @escaping () async throws -> HubStatus) async {
         guard !busy.contains(hub.id) else { return }
         busy.insert(hub.id)
+        controllerErrors[hub.id] = nil
         let generation = modeGeneration
         defer { busy.remove(hub.id) }
         do {
@@ -169,6 +176,7 @@ import GrowhubCore
         } catch {
             guard generation == modeGeneration else { return }
             message = error.localizedDescription
+            controllerErrors[hub.id] = message
             await refreshAfterFailure(hub)
         }
     }

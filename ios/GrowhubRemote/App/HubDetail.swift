@@ -19,22 +19,17 @@ struct HubDetail: View {
                 List {
                     if store.demoMode { Section { Label("Demo · no hardware connected", systemImage: "play.circle") } }
                     Section {
-                        HStack {
-                            Text(hub.deviceID).textSelection(.enabled)
-                            Spacer()
-                            if let status { Text("CE \(status.fw)") }
-                        }.font(.caption).foregroundStyle(.secondary)
-                        HStack { Label(status == nil ? "Not connected" : "Connected", systemImage: status == nil ? "wifi.slash" : "wifi"); Spacer(); Text(hub.host).font(.caption).foregroundStyle(.secondary) }
+                        CompactHubReadings(status: status)
+                    } header: {
+                        CompactHubHeader(hub: hub, status: status, error: store.controllerErrors[id], firmware: store.controllerSettings[id]?.fw) {
+                            editedOutlet = nil; alias = hub.alias; rename = true
+                        }
+                    } footer: {
                         if let status {
-                            if status.hasTemperatureHumidityReading {
-                                HStack { Text("\(status.temp, specifier: "%.1f")°\(status.unit)"); Spacer(); Text("\(status.rh, specifier: "%.0f")% humidity") }.font(.title3)
-                            } else {
-                                LabeledContent("Temperature", value: "Unavailable")
-                                LabeledContent("Humidity", value: "Unavailable")
-                                Text("No valid temperature or humidity reading from this Growhub.").font(.footnote).foregroundStyle(.secondary)
+                            if !status.hasTemperatureHumidityReading {
+                                Text("No valid temperature or humidity reading from this Growhub.")
                             }
-                            LabeledContent("Light level", value: status.lightLevel.map { "\($0) / 255" } ?? "Unavailable")
-                            ForEach([status.time_warning, status.sensor_warning].compactMap { $0 }.filter { !$0.isEmpty }, id: \.self) { Text($0).font(.footnote).foregroundStyle(.orange) }
+                            ForEach([status.time_warning, status.sensor_warning].compactMap { $0 }.filter { !$0.isEmpty }, id: \.self) { Text($0).foregroundStyle(.orange) }
                         }
                     }
                     if let status {
@@ -62,6 +57,7 @@ struct HubDetail: View {
                                                 await store.refreshDetails(hub)
                                                 guard let settings = store.controllerSettings[id], settings.fields["label_\(outlet.id)"] != nil else {
                                                     store.message = "This controller did not return a shared equipment label for this outlet."
+                                                    store.controllerErrors[id] = store.message
                                                     return
                                                 }
                                                 editedOutlet = outlet.id
@@ -107,16 +103,16 @@ struct HubDetail: View {
                                 do {
                                     _ = try await HubAPI.shared.status(host: hub.host, expectedID: hub.id)
                                     fullControls = true
-                                } catch { store.message = error.localizedDescription }
+                                } catch { store.message = error.localizedDescription; store.controllerErrors[id] = store.message }
                             }
                         } label: { Label("Full controls", systemImage: "slider.horizontal.3") }
                         Text("Native schedules, assignments, network settings and firmware updates.").font(.caption).foregroundStyle(.secondary)
                     }
-                    if let message = store.message { Section { Text(message).font(.footnote).foregroundStyle(.orange) } }
+                    if let message = store.controllerErrors[id] { Section { Text(message).font(.footnote).foregroundStyle(.orange) } }
                 }
                 .disabled(store.busy.contains(id))
-                .navigationTitle(hub.title)
-                .toolbar { Button { editedOutlet = nil; alias = hub.alias; rename = true } label: { Image(systemName: "pencil") }.accessibilityLabel("Rename Growhub") }
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
                 .task(id: "\(id)-\(phase)") { if phase == .active { await store.refreshDetails(hub) } }
                 .refreshable { await store.refreshDetails(hub) }
                 .sheet(isPresented: $fullControls, onDismiss: { Task { await store.refreshDetails(hub) } }) {

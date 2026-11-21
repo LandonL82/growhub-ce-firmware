@@ -18,8 +18,9 @@ than strict Semantic Versioning syntax; compatibility meaning follows
 The amount of code changed does not determine the version. Published tag
 contents are immutable. The independent outlet-control proposal uses development
 version `1.2.5C` so it cannot be confused with the frozen `1.2.0C` artifacts.
-This is not a published or hardware-verified release. See
-[ADR 0005](adr/0005-per-outlet-control-modes.md) for scope and remaining verification.
+Hardware validation is complete for the tested candidate; it is not yet a
+published upstream release. See [ADR 0005](adr/0005-per-outlet-control-modes.md)
+and the [validation record](VALIDATION-v1.2.5C.md) for scope and completed checks.
 Both `GROWHUB_VERSION` in `firmware/platformio.ini` and `CONFIG_APP_PROJECT_VER`
 in `firmware/sdkconfig.growhub` must match; building does not increment them.
 

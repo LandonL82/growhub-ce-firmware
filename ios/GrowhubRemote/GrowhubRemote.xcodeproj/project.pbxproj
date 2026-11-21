@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		13525D77753166352C5F0252 /* CompactHubHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04315FA7250D533C080AB8DE /* CompactHubHeader.swift */; };
 		197C23B32EC72CFC60C1BA2D /* NativeControllerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D9D3C28A3F4823114C7190 /* NativeControllerView.swift */; };
 		1B9D683739994A9ABEDAE5FB /* GrowhubCore in Frameworks */ = {isa = PBXBuildFile; productRef = 76416A0D719738E0F50B9310 /* GrowhubCore */; };
 		283A4D38A6F1E3734F21D2F9 /* SwiftSoup-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = BBA2D1F1873B08F66BF49E14 /* SwiftSoup-LICENSE.txt */; };
@@ -34,6 +35,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		04315FA7250D533C080AB8DE /* CompactHubHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactHubHeader.swift; sourceTree = "<group>"; };
 		1C7B48026D7693B86CA4667D /* GrowhubRemoteUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GrowhubRemoteUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EB5CB9FE5F99018D2F5218D /* NativeMaintenanceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMaintenanceViews.swift; sourceTree = "<group>"; };
 		228AB9D7A6B904AF4EEF03A1 /* NativeControllerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeControllerModel.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				6B745D4CB3A86D5641C535DC /* AboutView.swift */,
 				2E3AFFEADADEA794550AC7B7 /* Assets.xcassets */,
 				5A2FBF57A361850246EEAC4B /* BonjourDiscovery.swift */,
+				04315FA7250D533C080AB8DE /* CompactHubHeader.swift */,
 				72E068A8C415A0A041D7EDD1 /* GrowhubRemoteApp.swift */,
 				A920726AEC026AE64A28C07C /* HubDetail.swift */,
 				7FA0DF97F952C268C6DCB25D /* HubList.swift */,
@@ -238,6 +241,7 @@
 			files = (
 				FC97A48D91886A65915FCA02 /* AboutView.swift in Sources */,
 				7198A1EE6659CA79F58C25CC /* BonjourDiscovery.swift in Sources */,
+				13525D77753166352C5F0252 /* CompactHubHeader.swift in Sources */,
 				3AC776256949AB2E038451BA /* GrowhubRemoteApp.swift in Sources */,
 				B47E6CC04A984F6D53FCDA1C /* HubDetail.swift in Sources */,
 				823F2491966DCD6F96959DA0 /* HubList.swift in Sources */,
@@ -295,7 +299,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -372,7 +376,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
